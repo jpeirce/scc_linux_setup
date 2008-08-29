@@ -1,0 +1,439 @@
+#!/bin/bash
+##ENTIRE PROGRAM COMPLETELY UNTESTED - NEED TO TEST##
+
+#########################################################################
+# Copyright (C) 2008, Jack Peirce						#
+#  This program is free software: you can redistribute it and/or modify #
+#  it under the terms of the GNU General Public License as published by #
+#  the Free Software Foundation, either version 3 of the License, or  	#
+#  (at your option) any later version.					#
+#									#
+#  This program is distributed in the hope that it will be useful,	#
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of	#
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the	#
+#  GNU General Public License for more details.				#
+#									#
+#  You should have received a copy of the GNU General Public License	#
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.#
+#########################################################################
+
+#################################################
+# SCC Linux Setup v0 Alpha 			#
+#						#
+# Author: Jack Peirce <jpeirce@sourcecode.com>	#
+#						#
+# Date: 8/29/08					#
+#						#
+# Description: Collection of bash scripts that 	#
+#	set up a Linux system based on SCC 	#
+#	software installation and configuration #
+#	procedures.				#
+#						#
+# Bugs: No main function, script useless	#
+#	Minor Bugs listed in headers below	#
+#						#
+# Supported Distros: Fedora, RHEL, CentOS,	#
+#	Debian, Ubuntu,SUSE partial support for #
+#	all other Linux systems			#
+#						#
+# Usage: Just run this script and answer the 	#
+#	prompts					#
+#################################################
+
+################NEED TO IMPLEMENT################
+#	In No Particular Order			#
+# VOID MAIN :p					#
+# Usage function				#
+# Replace test with [[]] builtins		#
+# Debugging support				#
+# Centos 4/5 Detection				#
+# RAID Management installation			#
+# Latest NVIDIA driver detection		#
+# Autocreate mozilla profile			#
+# Sanity checks for user input			#
+# Actual network device testing			#
+# Maybe Linux RAID needs support?		#
+# Command Line options to disable subroutines	#
+# Replace ls and grep with better practice	#
+# init changing, reboot support			#
+# Better security, probably don't need all root	#
+# Better Comments				#
+# Adhere to function, variable naming standards	#
+#################################################
+
+#################VERSION HISTORY#################
+# pre-Alpha: Script was a quick script to	#
+#	do checklist for 17 piece MIT Lincoln	#
+#	Labs order with RHEL 5.2 on them	#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# v0 Alpha: Current Version			#
+#	Added:					#
+#	  -Most comments and headers		#
+#	  -Created functions for each section	#
+#	  -Preliminary Support for Fedora, RHEL #
+#		CentOS, SuSe, Debian, Ubunut	#
+#	  -Distro Identification		#
+#	  -Distro Updates			#
+#	  -Code Cleanup				#
+#						#
+#	Removed:				#
+#	  -Reboot for BIOS setup		#
+#	    (perhaps this should be re-added	#
+#		with a user option?		#
+#################################################
+
+#################################################
+# Function: errorCheck 				#
+#						#
+# Purpose: Sanity check to make sure program can#
+#	run correctly				#
+#						#
+# Parameters: None				#
+#						#
+# Called By: None (main in future?)		#
+#						#
+# Effects: Exit with code 1 if not sane		#
+# 						#
+# Bugs: None?					#
+#################################################
+
+#################################################
+# TO IMPLEMENT:					#
+#	Ubuntu root support maybe?		#
+#	Create mozilla profile			#
+#################################################
+errorCheck() {
+	#Check if root, exit if not
+	if [[ $EUID -ne 0 ]]; then
+   		echo "This script must be run as root" 1>&2
+   		exit 1
+	fi
+
+	#Check if firefox profile has been initialized (should check more in depth in future
+	if [ ! -d ~/.mozilla ]; then 
+		echo "Please start, and then close Firefox before running this script"
+		exit 1
+	fi
+}
+
+#################################################
+# Function: distroID				#
+# 						#
+# Purpose: Identify distro of target system	#
+#						#
+# Parameters: None				#
+#						#
+# Called by: None (main in future?)		#
+#						#
+# Effects: Sets osIdentifier variable		#
+# 						#
+# Bugs: If not RHEL/SUSE/FC/CENT/DEBIAN/UBUNTU  #
+#	osIdentifier=Unknown 			#
+#################################################
+
+#################################################
+# TO IMPLEMENT:					#
+#	Sanity checks				#
+#	More distro support			#
+#	Version support as well?		#
+#################################################
+
+distroID() {
+#Checks for /etc/*-release files, lsb_release if LSB standard
+	if [ -f /etc/redhat-release ] ; then
+		osIdentifier="RHEL"
+	elif [ -f /etc/SuSe-release ] ; then
+		osIdentifier="SUSE"
+	elif [ -f /etc/fedora-release ] ; then
+		osIdentifier="FC"
+	elif [ -f /etc/centos-release ] ; then
+		osIdentifier="CENT"
+	elif [ -f /etc/lsb-release ] 
+		osIdentifier=`lsb_release -i | awk -F : '{print $NF}' | awk -F' ' '{print $NF}'`
+	else
+		osIdentifier="Unknown"
+	fi
+}
+
+#################################################
+# Function: systemUpdate			#
+# 						#
+# Parameters: None (osIdentifier in future)	#
+#						#
+# Purpose: Update system to latest official 	#
+#	packages				#
+#						#
+# Called By: None (maybe main or distroID?	#
+#						#
+# Bugs: Kernel update should reboot machine	#
+#						#
+# Effects: Update system packages		#
+#################################################
+
+#################################################
+# TO IMPLEMENT:					#
+#	CentOS version detection (in distroID?)	#
+#	Kernel Update detect (ditto)		#
+#	Sanity checks to replace dirty hacks	#
+#	More distro support			#
+#	More automation in updates		#
+#################################################
+
+systemUpdate() {
+	if [ $osIdentifier == "RHEL" ] ; then
+		echo "RHEL does not need updates..."
+	elif [ $osIdentifier == "SUSE" ] ; then
+		zypper --non-interactive update --auto-agree-with-licenses 
+	elif [ $osIdentifier == "FC" ] ; then
+		yum -y install yum-fastestmirror
+		yum -y update
+	elif [ $osIdentifier == "CENT" ] ; then
+		#Should try to find out if 4 or 5 auto, for now hack
+		yum -y install yum-fastestmirror
+		yum -y install yum-plugin-fastestmirror
+		yum -y update
+	elif [ $osIdentifier == "Ubuntu" ] ; then
+		apt-get -y update
+		apt-get -y upgrade
+	elif [ $osIdentifier == "Debian" ] ; then
+		apt-get -y update
+		apt-get -y upgrade
+	else	
+		echo "Not running updates, distro unknown, press enter to continue"
+		read dirtyhack1
+	fi
+
+	echo "You may need to reboot if the kernel was updated, press enter to continue"
+	read dirtyhack2
+}
+
+
+##RAID SHOULD GO HERE
+
+#################################################
+# Function: netTest				#
+#						#
+# Parameters: None (adapters in future?)	#
+# 						#
+# Purpose: Test all network adapters		#
+#						#
+# Called By: None (main in future)		#
+#						#
+# Bugs: Just tests network for each adapter	#
+#	No SuSE support yet			#
+#						#
+# Effects: sets adapters to each adapter	#
+#	exits with code 1 if ping fails		#
+#################################################
+
+#################################################
+# TO IMPLEMENT:					#
+# Better adapter detection, probably not all eth#
+# Sanity checks to replace dirty hacks		#
+# SUSE Support					#
+# Real adapter testing, not just network	#
+# Get rid of test subroutine?			#
+#################################################
+netTest() {
+	#get list of adapters
+	adapters=`/sbin/ifconfig -a | grep eth | awk '{print $1}'`
+
+	#########################################
+	# Subroutine: test			#
+	# Parameters: none (maybe adapter?)	#
+	# Purpose: Test individual adapters	#
+	#########################################
+	test() {
+		echo "Please connect $i and hit enter to continue"
+		read dirtyhack3
+
+		#Restart network based on distro, no SuSe support
+		if [ $osIdentifier == "CENT" -o $osIdentifier == "RHEL" -o $osIdentifier == "FC" ] ; then
+			service network restart
+		elif [ $osIdentifier == "Ubuntu" -o $osIdentifier == "Debian" ] ; then
+			/etc/init.d/networking restart
+		fi
+	
+		if ping -c 4 google.com # reverse this?
+		then
+			#SUCCESS
+		else
+			echo "NETWORK FAILURE" 
+			exit 1
+		fi
+	}	
+	
+	#test each adapter
+	for i in $adapters 
+	do 
+		test
+	done
+}
+
+#################################################
+# Function: setFFHP				#
+# 						#
+# Parameters: None (vendorUrl in future?)	#
+#						#
+# Purpose: Set Firefox's homepage to vendorurl	#
+#						#
+# Called by: None (main in future?)		#
+# 						#
+# Bugs: Does not work if profile not initialized#
+#	(must start firefox first)		#
+#						#
+# Effects: Changes firefox homepage url		#
+#	sets vendorName, vendorUrl, preffileloc	#
+#	edits firefox profile's prefs.js	#
+#################################################
+
+#################################################
+# TO IMPLEMENT:					#
+#	Sanity check on vendorName read		#
+#	Better prefsfileloc detection (no ls)	#
+#	Better prefs.js substitution		#
+# 	-maybe just edit one line in that file?	#
+#################################################
+setFFHP () {
+	echo "What vendor is this system for? (PC/TM/SCC)"
+	read vendorName
+	
+	#Is case better than elif here?
+	if [ $vendorName == "PC" ] ; then
+		vendorUrl="pcsforeveryone"
+	elif [ $vendorName == "TM" ] ; then
+		vendorUrl="thinkmate"
+	elif [ $vendorName == "SCC" ] ; then
+		vendorUrl="sourcecode"
+	else
+		echo "Unknown vendor, defaulting to SCC"
+		vendorUrl="sourcecode"
+	fi
+
+	#get location of prefs.js, mozilla creates random garbled foldername
+	prefsfileloc=`ls -r ~/.mozilla/firefox/ | grep default`
+
+	#create new prefs.js file without homepage lines
+	grep -v homepage .mozilla/firefox/$prefsfileloc/prefs.js >> newprefs
+	echo 'user_pref("browser.startup.homepage", "http://www.'${vendorUrl}'.com");' >> newprefs
+	
+	#Add homepage lines we removed because our grep sucked
+	grep homepage .mozilla/firefox/$prefsfileloc/prefs.js | tail -3 >> newprefs
+	rm -rf ~/.mozilla/firefox/$prefsfileloc/prefs.js
+	mv newprefs ~/.mozilla/firefox/$prefsfileloc/prefs.js
+}
+
+#################################################
+# Function: grfxCard				#
+# 						#
+# Parameters: none				#
+#						#
+# Purpose: Install graphics card drivers	#
+#						#
+# Called by: None (main in future?)		#
+#						#
+# Effects: If supported, installs graphics card #
+#	drivers					#
+#	sets nvidiaReply			#
+#						#
+# Bugs: Only supports nvidia, fail if X	running #
+#################################################
+
+#################################################
+# TO IMPLEMENT:					#
+#	nvidia-driver latest version detection	#
+#	non-nvidia support (ati, intel, etc.)	#
+#	sanity check on nvidiareply		#
+#	better options for nvidia installer	#
+#	sanity check for wget, rm. X, sh	#
+#	-drop out of X, then restart if needed	#
+#	-check if --no-x-check works?		#
+#	Maybe -k option fixes reboot for kernel #
+#		update?				#
+#	distro supported installation?		#
+#################################################
+
+grfxCard () {
+	# Get user input, if input not y, assume no
+	echo "Does this system have a nvidia card? (y/N)"
+	read nvidiaReply
+
+	if [ $nvidiaReply == "y" ] ; then
+	#download and install nvidia drivers - later auto-detect latest version
+		wget http://us.download.nvidia.com/XFree86/Linux-x86_64/177.13/NVIDIA-Linux-x86_64-177.13-pkg2.run
+		sh NVIDIA-Linux-x86_64-177.13-pkg2.run -a -n -N -X -q --no-runlevel-check
+		rm -rf NVIDIA-Linux-x86_64-177.13-pkg2.run
+	fi
+}
+
+#################################################
+# Function: devCheck				#
+#						#
+# Parameters: none (maybe device lists?)	#
+#						#
+# Purpose: Check disks and processors		#
+#						#
+# Called By: None (main in future?)		#
+#						#
+# Effects: Sets home, boot, root, swap, procs	#
+#	and *OK vars				#
+#	exits if user enters "n" to any prompt	#
+#						#
+# Bugs: None known, though I wouldn't be	#
+#	surprised if disk detection had a bug	#
+#################################################
+
+#################################################
+# TO IMPLEMENT:					#
+#	Better disk detection, especially root  #
+#	Sanity checks on user input		#
+#	Linux RAID support?			#
+#	Hardware RAID support?			#
+#	Better disk size detection?		#
+#	More details for processors?		#
+#################################################
+devCheck () {
+	#Get size of disks, swap, and number of cores
+	home=`df -h | grep home | awk '{print $2'}`
+	boot=`df -h | grep boot | awk '{print $2'}`
+	root=`df -h $(mount | head -1 | awk '{print $1}') | tail -1 | awk '{print $2}'`
+	swap=`free -m | tail -1 | awk '{print $2'}`
+	procs=`grep -c proc /proc/cpuinfo`
+	
+	echo "Swap is reading $swap MB - is this correct? (Y/n)"
+	read swapOK
+	if [ "$swapOK" == "n" ] ; then 
+		echo "SWAP ERROR"
+		exit 1
+	fi
+
+	echo "Root is reading $root - is this correct? (Y/n)"
+	read rootOK
+	if [ "$rootOK" == "n" ] ; then
+		echo "ROOT ERROR"
+		exit 1
+	fi
+
+	echo "Boot is reading $boot - is this correct? (Y/n)"
+	read bootOK
+	if [ "$bootOK" == "n" ] ; then
+		echo "BOOT ERROR"
+		exit 1
+	fi
+
+	echo "Home is reading $home - is this correct? (Y/n)" 
+	read homeOK
+	if [ "$homeOK" == "n" ] ; then 
+		echo "HOME ERROR"
+		exit 1
+	fi
+
+	echo "System is showing $proc Cores - is this correct (Y/n)"
+	read procOK
+	if [ "$procOK" == "n" ] ; then
+		echo "PROCS ERROR"
+		exit 1
+	fi
+}
+
+####MAIN SHOULD GO HERE
