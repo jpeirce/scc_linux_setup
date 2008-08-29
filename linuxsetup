@@ -125,13 +125,12 @@ errorCheck() {
 #						#
 # Called by: None (main in future?)		#
 #						#
-# Effects: Sets osIdentifier variable		#
+# Effects: Returns code for Distro ID		#
 # 						#
 # Bugs: If not RHEL/SUSE/FC/CENT/DEBIAN/UBUNTU  #
-#	osIdentifier=Unknown 			#
+#	  returns Unknown 			#
 #	CentOS detection may be broken		#
 #################################################
-
 
 #################################################
 # TO IMPLEMENT:					#
@@ -143,24 +142,24 @@ errorCheck() {
 distroID() {
 #Checks for /etc/*-release files, lsb_release if LSB standard
 	if [ -f /etc/redhat-release ] ; then
-		osIdentifier="RHEL"
+		echo "RHEL"
 	elif [ -f /etc/SuSe-release ] ; then
-		osIdentifier="SUSE"
+		echo "SUSE"
 	elif [ -f /etc/fedora-release ] ; then
-		osIdentifier="FC"
+		echo "FC"
 	elif [ -f /etc/centos-release ] ; then
-		osIdentifier="CENT"
+		 echo "CENT"
 	elif [ -f /etc/lsb-release ] 
-		osIdentifier=`lsb_release -i | awk -F : '{print $NF}' | awk -F' ' '{print $NF}'`
+		echo `lsb_release -i | awk -F : '{print $NF}' | awk -F' ' '{print $NF}'`
 	else
-		osIdentifier="Unknown"
+		echo "Unknown"
 	fi
 }
 
 #################################################
 # Function: systemUpdate			#
 # 						#
-# Parameters: None (osIdentifier in future)	#
+# Parameters: osIdentifier (from distroID())	#
 #						#
 # Purpose: Update system to latest official 	#
 #	packages				#
@@ -174,7 +173,7 @@ distroID() {
 
 #################################################
 # TO IMPLEMENT:					#
-#	CentOS version detection (in distroID?)	#
+#	CentOS version detection for fastmirror	#
 #	Kernel Update detect (ditto)		#
 #	Sanity checks to replace dirty hacks	#
 #	More distro support			#
@@ -182,28 +181,15 @@ distroID() {
 #################################################
 
 systemUpdate() {
-	if [ $osIdentifier == "RHEL" ] ; then
-		echo "RHEL does not need updates..."
-	elif [ $osIdentifier == "SUSE" ] ; then
-		zypper --non-interactive update --auto-agree-with-licenses 
-	elif [ $osIdentifier == "FC" ] ; then
-		yum -y install yum-fastestmirror
-		yum -y update
-	elif [ $osIdentifier == "CENT" ] ; then
-		#Should try to find out if 4 or 5 auto, for now hack
-		yum -y install yum-fastestmirror
-		yum -y install yum-plugin-fastestmirror
-		yum -y update
-	elif [ $osIdentifier == "Ubuntu" ] ; then
-		apt-get -y update
-		apt-get -y upgrade
-	elif [ $osIdentifier == "Debian" ] ; then
-		apt-get -y update
-		apt-get -y upgrade
-	else	
-		echo "Not running updates, distro unknown, press enter to continue"
-		read dirtyhack1
-	fi
+	case $1 in
+	  RHEL)   echo "This distro does not need updates..." ;;
+	  SUSE)   zypper --non-interactive update --auto-agree-with-licenses;;
+	  FC)     yum -y install yum-fastestmirror && yum -y update ;; 
+	  CENT)   yum -y update ;; 
+	  Ubuntu) apt-get -y update && apt-get -y upgrade ;;
+	  Debian) apt-get -y update && apt-get -y upgrade ;;
+	  *)	  echo "Not running updates, distro unknown, press enter to continue" && read dirtyhack1 ;;
+	esac
 
 	echo "You may need to reboot if the kernel was updated, press enter to continue"
 	read dirtyhack2
@@ -215,11 +201,11 @@ systemUpdate() {
 #################################################
 # Function: netTest				#
 #						#
-# Parameters: None (adapters in future?)	#
+# Parameters: device 				#
 # 						#
-# Purpose: Test all network adapters		#
+# Purpose: Test network adapter			#
 #						#
-# Called By: None (main in future)		#
+# Called By: main				#
 #						#
 # Bugs: Just tests network for each adapter	#
 #	No SuSE support yet			#
@@ -232,45 +218,23 @@ systemUpdate() {
 # TO IMPLEMENT:					#
 # Better adapter detection, probably not all eth#
 # Sanity checks to replace dirty hacks		#
-# SUSE Support					#
 # Real adapter testing, not just network	#
-# Get rid of test subroutine?			#
 #################################################
 netTest() {
-	#get list of adapters
-	adapters=`/sbin/ifconfig -a | grep eth | awk '{print $1}'`
-
-	#########################################
-	# Subroutine: test			#
-	# Parameters: none (maybe adapter?)	#
-	# Purpose: Test individual adapters	#
-	#########################################
-	test() {
-		echo "Please connect $i and hit enter to continue"
-		read dirtyhack3
-
-		#Restart network based on distro, no SuSe support
-		if [ $osIdentifier == "CENT" -o $osIdentifier == "RHEL" -o $osIdentifier == "FC" ] ; then
-			service network restart
-		elif [ $osIdentifier == "Ubuntu" -o $osIdentifier == "Debian" ] ; then
-			/etc/init.d/networking restart
-		fi
+	read dirtyhack3?"Please connect $1 and hit enter to continue"
 	
-		if ping -c 4 google.com # reverse this?
-		then
-			#SUCCESS
-		else
-			echo "NETWORK FAILURE" 
-			exit 1
-		fi
-	}	
+	#Restart network based on distro, no SuSe support
+	if [ $2 == "CENT" -o $2 == "RHEL" -o $2 == "FC" ] ; then
+		service network restart
+	elif [ $2 == "Ubuntu" -o $2 == "Debian" -o $2 == "SUSE" ] ; then
+		/etc/init.d/networking restart
+	fi
 	
-	#test each adapter
-	for i in $adapters 
-	do 
-		test
-	done
-}
+	if !(ping -c 4 google.com) ; then
+		echo "NETWORK FAILURE (or google is down)" 
+		exit 1
+	fi
+}	
 
 #################################################
 # Function: setFFHP				#
@@ -343,7 +307,6 @@ setFFHP () {
 
 #################################################
 # TO IMPLEMENT:					#
-#	nvidia-driver latest version detection	#
 #	non-nvidia support (ati, intel, etc.)	#
 #	sanity check on nvidiareply		#
 #	better options for nvidia installer	#
@@ -362,9 +325,16 @@ grfxCard () {
 
 	if [ $nvidiaReply == "y" ] ; then
 	#download and install nvidia drivers - later auto-detect latest version
-		wget http://us.download.nvidia.com/XFree86/Linux-x86_64/177.13/NVIDIA-Linux-x86_64-177.13-pkg2.run
-		sh NVIDIA-Linux-x86_64-177.13-pkg2.run -a -n -N -X -q --no-runlevel-check
-		rm -rf NVIDIA-Linux-x86_64-177.13-pkg2.run
+	
+		#Bash magic to get the nvidia version and pkg version
+		nvidiaVersion=`links -dump http://www.nvidia.com/object/unix.html| grep -A 1 AMD64 | tail -1 | awk -F: '{print $NF}' | sed 's/^[ \t]*//;s/[ \t]*$//'`
+		#Dirty Hack that I should get rid of, don't know why sed sucks
+		pkgVrsion=`links -dump http://www.nvidia.com/object/linux_display_amd64_\${nvidiaVersion}.html | grep -A 1 'STEP 3' | awk -F'"' '{print $2}' | awk -F- '{print $5}' | awk -F. '{print $1}'`
+		pkgVersion=`echo $pkgVrsion | sed 's/^[ \t]*//;s/[ \t]*$//'`
+
+		wget http://us.download.nvidia.com/XFree86/Linux-x86_64/${nvidiaVersion}/NVIDIA-Linux-x86_64-${nvidiaVersion}-${pkgVersion}.run
+		sh NVIDIA-Linux-x86_64-${nvidiaVersion}-${pkgVersion}.run -a -n -N -X -q --no-runlevel-check
+		rm -rf NVIDIA-Linux-x86_64-${nvidiaVersion}-${pkgVersion}.run
 	fi
 }
 
@@ -439,3 +409,15 @@ devCheck () {
 }
 
 ####MAIN SHOULD GO HERE
+main () {
+	errorCheck
+	
+	osIdentifier=`distroID`
+	systemUpdate $osIdentifier
+	
+	adapters=`/sbin/ifconfig -a | grep eth | awk '{print $1}'`
+	for device in $adapters
+	do
+		netTest $device $osIdentifier
+	done
+}
