@@ -129,7 +129,9 @@ errorCheck() {
 # 						#
 # Bugs: If not RHEL/SUSE/FC/CENT/DEBIAN/UBUNTU  #
 #	osIdentifier=Unknown 			#
+#	CentOS detection may be broken		#
 #################################################
+
 
 #################################################
 # TO IMPLEMENT:					#
